@@ -423,9 +423,9 @@ class BrainChatting:
                 await asyncio.sleep(0.1)
         except asyncio.CancelledError:
             # 设置了关闭标志位后被取消是正常流程
-            logger.info(f"{self.log_prefix} 麦麦已关闭聊天")
+            logger.info(f"{self.log_prefix} 小熙已关闭聊天")
         except Exception:
-            logger.error(f"{self.log_prefix} 麦麦聊天意外错误，将于3s后尝试重新启动")
+            logger.error(f"{self.log_prefix} 小熙聊天意外错误，将于3s后尝试重新启动")
             print(traceback.format_exc())
             await asyncio.sleep(3)
             self._loop_task = asyncio.create_task(self._main_chat_loop())

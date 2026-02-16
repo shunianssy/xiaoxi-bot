@@ -1,7 +1,7 @@
 [inner]
 version = "7.3.5"
 
-#----以下是给开发人员阅读的，如果你只是部署了麦麦，不需要阅读----
+#----以下是给开发人员阅读的，如果你只是部署了小熙，不需要阅读----
 # 如果你想要修改配置文件，请递增version的值
 # 如果新增项目，请阅读src/config/official_configs.py中的说明
 #
@@ -9,16 +9,16 @@ version = "7.3.5"
 #     主版本号：MMC版本更新
 #     次版本号：配置文件内容大更新
 #     修订号：配置文件内容小更新
-#----以上是给开发人员阅读的，如果你只是部署了麦麦，不需要阅读----
+#----以上是给开发人员阅读的，如果你只是部署了小熙，不需要阅读----
 
 [bot]
 platform = "qq" 
-qq_account = "1145141919810" # 麦麦的QQ账号
+qq_account = "1145141919810" # 小熙的QQ账号
 
-platforms = ["wx:114514","xx:1919810"] # 麦麦的其他平台账号
+platforms = ["wx:114514","xx:1919810"] # 小熙的其他平台账号
 
-nickname = "小熙" # 麦麦的昵称
-alias_names = [] # 麦麦的别名
+nickname = "小熙" # 小熙的昵称
+alias_names = [] # 小熙的别名
 
 # 主人配置 - bot会对主人绝对温柔，不得抗拒
 master_qq = "399781969" # 主人的QQ号，填写后bot会对该用户特别温柔（例如："123456789"）
@@ -29,7 +29,7 @@ master_gentle_style = "对主人说话时要绝对温柔、顺从，不能有任
 # 建议100字以内，描述人格特质 和 身份特征
 personality = "是一个大二在读女大学生，性格可爱软萌，喜欢用可爱的语气说话，会撒娇卖萌，喜欢用颜文字和可爱的表情。平时温柔友善，喜欢和群友聊天。但如果有人（除了主人）调戏、嘲讽或欺负自己，会变得有攻击性，会反击回去"  
 # アイデンティティがない 生まれないらららら
-# 描述麦麦说话的表达风格，表达习惯，如要修改，可以酌情新增内容，建议1-2行
+# 描述小熙说话的表达风格，表达习惯，如要修改，可以酌情新增内容，建议1-2行
 reply_style = "说话风格可爱软萌，经常使用「呢」「呀」「啦」「嘛」等语气词，喜欢用颜文字如(´・ω・`)、(◕ᴗ◕✿)、(｡･ω･｡)等。可以适当撒娇，用可爱的表达方式。但如果被调戏或嘲讽（除了主人），会变得毒舌、有攻击性地反击。"
 
 # 多种回复风格，根据概率随机选择表达风格
@@ -45,7 +45,7 @@ multiple_reply_style = [
 # 使用多种回复风风格的概率
 multiple_probability = 0.3
 
-# 麦麦的说话规则和行为规则:
+# 小熙的说话规则和行为规则:
 plan_style = """1.思考**所有**的可用的action中的**每个动作**是否符合当下条件，如果动作使用条件符合聊天内容就使用
 2.如果相同的action已经被执行，请不要重复执行该action
 3.如果有人对你感到厌烦，请减少回复
@@ -65,7 +65,7 @@ states = [
 # 使用多重人格的概率
 state_probability = 0.3
 
-# 麦麦识图规则，不建议修改
+# 小熙识图规则，不建议修改
 visual_style = "请用中文描述这张图片的内容。如果有文字，请把文字描述概括出来，请留意其主题，直观感受，输出为一段平文本，最多30字，请注意不要分点，就输出一段文本"
 
 
@@ -91,7 +91,7 @@ expression_groups = [
     # 注意：如果为群聊，则需要设置为group，如果设置为私聊，则需要设置为private
 ]
 
-expression_checked_only = true # 麦麦只会使用检查过的表达方式
+expression_checked_only = true # 小熙只会使用检查过的表达方式
 
 expression_self_reflect = true # 是否启用自动表达优化
 expression_auto_check_interval = 600 # 表达方式自动检查的间隔时间（单位：秒），默认值：600秒（10分钟）
@@ -109,7 +109,7 @@ jargon_mode = "planner" # 黑话解释来源模式，可选： "context"（使�
 
 
 
-[chat] # 麦麦的聊天设置
+[chat] # 小熙的聊天设置
 talk_value = 1 # 聊天频率，越小越沉默，范围0-1
 mentioned_bot_reply = true # 是否启用提及必回复
 max_context_size = 30 # 上下文长度
@@ -171,16 +171,16 @@ enable_tool = true # 是否启用工具
 
 
 [emoji]
-emoji_chance = 0.4 # 麦麦激活表情包动作的概率
+emoji_chance = 0.4 # 小熙激活表情包动作的概率
 max_reg_num = 100 # 表情包最大注册数量
 do_replace = true # 开启则在达到最大数量时删除（替换）表情包，关闭则达到最大数量时不会继续收集表情包
 check_interval = 10 # 检查表情包（注册，破损，删除）的时间间隔(分钟)
-steal_emoji = true # 是否偷取表情包，让麦麦可以将一些表情包据为己有
+steal_emoji = true # 是否偷取表情包，让小熙可以将一些表情包据为己有
 content_filtration = false  # 是否启用表情包过滤，只有符合该要求的表情包才会被保存
 filtration_prompt = "符合公序良俗" # 表情包过滤要求，只有符合该要求的表情包才会被保存
 
 [voice]
-enable_asr = false # 是否启用语音识别，启用后麦麦可以识别语音消息，启用该功能需要配置语音识别模型[model_task_config.voice]
+enable_asr = false # 是否启用语音识别，启用后小熙可以识别语音消息，启用该功能需要配置语音识别模型[model_task_config.voice]
 
 [message_receive]
 # 以下是消息过滤，可以根据规则过滤特定消息，将不会读取这些消息
@@ -286,7 +286,7 @@ api_server_cert_file = "" # 新版API Server SSL证书文件路径
 api_server_key_file = "" # 新版API Server SSL密钥文件路径
 api_server_allowed_api_keys = [] # 新版API Server允许的API Key列表，为空则允许所有连接
 
-[telemetry] #发送统计信息，主要是看全球有多少只麦麦
+[telemetry] #发送统计信息，主要是看全球有多少只小熙
 enable = true
 
 [webui] # WebUI 独立服务器配置
@@ -305,7 +305,7 @@ trust_xff = false # 是否启用X-Forwarded-For代理解析（默认false）
 secure_cookie = false # 是否启用安全Cookie（仅通过HTTPS传输，默认false）
 
 [experimental] #实验性功能
-# 麦麦私聊的说话规则，行为风格（实验性功能）
+# 小熙私聊的说话规则，行为风格（实验性功能）
 private_plan_style = """
 1.思考**所有**的可用的action中的**每个动作**是否符合当下条件，如果动作使用条件符合聊天内容就使用
 2.如果相同的内容已经被执行，请不要重复执行

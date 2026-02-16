@@ -548,7 +548,7 @@ class EmojiConfig(ConfigBase):
     """表情包检查间隔（分钟）"""
 
     steal_emoji: bool = True
-    """是否偷取表情包，让麦麦可以发送她保存的这些表情包"""
+    """是否偷取表情包，让小熙可以发送她保存的这些表情包"""
 
     content_filtration: bool = False
     """是否开启表情包过滤"""

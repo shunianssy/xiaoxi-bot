@@ -26,7 +26,7 @@ Command vs Action 选择指南
 
 2. 使用Action的场景
 
-- ✅ 增强麦麦的智能行为
+- ✅ 增强小熙的智能行为
 - ✅ 根据上下文自动触发
 - ✅ 情绪和表情表达
 - ✅ 智能建议和帮助
@@ -48,7 +48,7 @@ Command vs Action 选择指南
 - [😊 表情包API](api/emoji-api.md) - 表情包选择和管理接口
 
 ### 关系系统API
-- [人物信息API](api/person-api.md) - 用户信息，处理麦麦认识的人和关系的接口
+- [人物信息API](api/person-api.md) - 用户信息，处理小熙认识的人和关系的接口
 
 ### 数据与配置API
 - [🗄️ 数据库API](api/database-api.md) - 数据库操作接口

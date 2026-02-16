@@ -177,7 +177,7 @@ def easter_egg():
 
 async def graceful_shutdown():  # sourcery skip: use-named-expression
     try:
-        logger.info("正在优雅关闭麦麦...")
+        logger.info("正在优雅关闭小熙...")
 
         # 关闭 WebUI 服务器
         try:
@@ -218,10 +218,10 @@ async def graceful_shutdown():  # sourcery skip: use-named-expression
             except Exception as e:
                 logger.error(f"等待任务取消时发生异常: {e}")
 
-        logger.info("麦麦优雅关闭完成")
+        logger.info("小熙优雅关闭完成")
 
     except Exception as e:
-        logger.error(f"麦麦关闭失败: {e}", exc_info=True)
+        logger.error(f"小熙关闭失败: {e}", exc_info=True)
 
 
 def _calculate_file_hash(file_path: Path, file_type: str) -> str:

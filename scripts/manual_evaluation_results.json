@@ -1175,7 +1175,7 @@
     {
       "expression_id": 3071,
       "situation": "聊天中常以亲昵方式打招呼",
-      "style": "使用 麦麦你好/麦麦你好香",
+      "style": "使用 小熙你好/小熙你好香",
       "suitable": false,
       "reason": null,
       "evaluator": "manual",
@@ -1742,7 +1742,7 @@
     {
       "expression_id": 3892,
       "situation": "提醒注意健康时",
-      "style": "使用 请停止麦麦开发",
+      "style": "使用 请停止小熙开发",
       "suitable": false,
       "reason": null,
       "evaluator": "manual",
@@ -1796,7 +1796,7 @@
     {
       "expression_id": 3774,
       "situation": "对触发机制感到荒谬",
-      "style": "群友发色图也触发麦麦哈气",
+      "style": "群友发色图也触发小熙哈气",
       "suitable": false,
       "reason": null,
       "evaluator": "manual",

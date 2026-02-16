@@ -341,9 +341,9 @@ class InstallPluginRequest(BaseModel):
 
 
 class VersionResponse(BaseModel):
-    """麦麦版本响应"""
+    """小熙版本响应"""
 
-    version: str = Field(..., description="麦麦版本号")
+    version: str = Field(..., description="小熙版本号")
     version_major: int = Field(..., description="主版本号")
     version_minor: int = Field(..., description="次版本号")
     version_patch: int = Field(..., description="补丁版本号")
@@ -370,7 +370,7 @@ class UpdatePluginRequest(BaseModel):
 @router.get("/version", response_model=VersionResponse)
 async def get_maimai_version() -> VersionResponse:
     """
-    获取麦麦版本信息
+    获取小熙版本信息
 
     此接口无需认证，用于前端检查插件兼容性
     """
