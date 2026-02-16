@@ -16,7 +16,7 @@ from src.chat.message_receive.message import UserInfo, Seg, MessageRecv, Message
 from src.chat.message_receive.chat_stream import ChatStream
 from src.chat.message_receive.uni_message_sender import UniversalMessageSender
 from src.chat.utils.timer_calculator import Timer  # <--- Import Timer
-from src.chat.utils.utils import get_chat_type_and_target_info, is_bot_self
+from src.chat.utils.utils import get_chat_type_and_target_info, is_bot_self, is_master, get_master_style, detect_teasing_or_mockery, build_personality_protection_rule
 from src.chat.utils.prompt_builder import global_prompt_manager
 from src.chat.utils.chat_message_builder import (
     build_readable_messages,
@@ -412,11 +412,12 @@ class PrivateReplyer:
 
         return has_only_pics, has_text, pic_part, text_without_picids
 
-    async def build_keywords_reaction_prompt(self, target: Optional[str]) -> str:
+    async def build_keywords_reaction_prompt(self, target: Optional[str], reply_message: Optional[DatabaseMessages] = None) -> str:
         """构建关键词反应提示
 
         Args:
             target: 目标消息内容
+            reply_message: 回复的原始消息，用于判断是否来自主人
 
         Returns:
             str: 关键词反应提示字符串
@@ -428,9 +429,24 @@ class PrivateReplyer:
             if target is None:
                 return keywords_reaction_prompt
 
+            # 检查是否是主人
+            is_from_master = False
+            if reply_message:
+                platform = reply_message.user_info.platform or ""
+                user_id = str(reply_message.user_info.user_id or "")
+                is_from_master = is_master(platform, user_id)
+
             # 处理关键词规则
             for rule in global_config.keyword_reaction.keyword_rules:
                 if any(keyword in target for keyword in rule.keywords):
+                    # 如果是主人，跳过攻击性关键词反应（如"人机"相关的攻击性反应）
+                    if is_from_master:
+                        # 检查是否是攻击性关键词规则
+                        attack_keywords = ["人机", "bot", "机器", "入机", "robot", "机器人", "ai", "AI"]
+                        if any(kw in rule.keywords for kw in attack_keywords):
+                            logger.info(f"检测到主人私聊消息中的关键词 {rule.keywords}，跳过攻击性反应")
+                            continue
+                    
                     logger.info(f"检测到关键词规则：{rule.keywords}，触发反应：{rule.reaction}")
                     keywords_reaction_prompt += f"{rule.reaction}，"
 
@@ -440,6 +456,14 @@ class PrivateReplyer:
                     try:
                         pattern = re.compile(pattern_str)
                         if result := pattern.search(target):
+                            # 如果是主人，跳过攻击性正则反应
+                            if is_from_master:
+                                # 检查是否是攻击性反应（通过reaction内容判断）
+                                attack_indicators = ["攻击", "反问", "否定", "八岐大蛇"]
+                                if any(indicator in rule.reaction for indicator in attack_indicators):
+                                    logger.info(f"检测到主人私聊消息匹配正则 {pattern_str}，跳过攻击性反应")
+                                    break
+                            
                             reaction = rule.reaction
                             for name, content in result.groupdict().items():
                                 reaction = reaction.replace(f"[{name}]", content)
@@ -510,7 +534,15 @@ class PrivateReplyer:
 
         return action_descriptions
 
-    async def build_personality_prompt(self) -> str:
+    async def build_personality_prompt(self, reply_message: Optional[DatabaseMessages] = None) -> str:
+        """构建人格提示词，支持对主人使用特殊温柔风格，对非主人的调戏/嘲讽保持攻击性
+        
+        Args:
+            reply_message: 回复的原始消息，用于判断是否来自主人
+            
+        Returns:
+            str: 人格提示词
+        """
         bot_name = global_config.bot.nickname
         if global_config.bot.alias_names:
             bot_nickname = f",也有人叫你{','.join(global_config.bot.alias_names)}"
@@ -531,7 +563,60 @@ class PrivateReplyer:
             prompt_personality = selected_state
 
         prompt_personality = f"{prompt_personality};"
-        return f"你的名字是{bot_name}{bot_nickname}，你{prompt_personality}"
+        base_identity = f"你的名字是{bot_name}{bot_nickname}，你{prompt_personality}"
+        
+        # 检查是否是主人，如果是则添加温柔风格提示
+        if reply_message:
+            platform = reply_message.user_info.platform or ""
+            user_id = str(reply_message.user_info.user_id or "")
+            
+            if is_master(platform, user_id):
+                master_style = get_master_style()
+                master_name = getattr(global_config.bot, "master_name", "") or ""
+                if master_name:
+                    logger.info(f"检测到主人 {master_name} 的私聊消息，使用温柔风格")
+                else:
+                    logger.info(f"检测到主人的私聊消息，使用温柔风格")
+                # 在基础人格后添加对主人的特殊态度
+                return f"{base_identity}\n{master_style}"
+        
+        return base_identity
+
+    def build_personality_protection_rule_for_message(
+        self, 
+        reply_message: Optional[DatabaseMessages] = None,
+        target: str = ""
+    ) -> str:
+        """根据消息来源和内容构建人格保护规则
+        
+        Args:
+            reply_message: 回复的原始消息
+            target: 目标消息内容，用于检测调戏/嘲讽
+            
+        Returns:
+            str: 人格保护规则提示词
+        """
+        # 检查是否是主人
+        is_from_master = False
+        if reply_message:
+            platform = reply_message.user_info.platform or ""
+            user_id = str(reply_message.user_info.user_id or "")
+            is_from_master = is_master(platform, user_id)
+        
+        # 检测调戏/嘲讽（仅对非主人检测）
+        is_teasing = False
+        teasing_type = ""
+        if not is_from_master and target:
+            is_teasing, teasing_type = detect_teasing_or_mockery(target)
+            if is_teasing:
+                logger.info(f"检测到非主人的{teasing_type}行为，将使用攻击性回应模式")
+        
+        # 构建人格保护规则
+        return build_personality_protection_rule(
+            is_from_master=is_from_master,
+            is_teasing_or_mockery=is_teasing,
+            teasing_type=teasing_type
+        )
 
     def _parse_chat_prompt_config_to_chat_id(self, chat_prompt_str: str) -> Optional[tuple[str, str]]:
         """
@@ -733,7 +818,7 @@ class PrivateReplyer:
             ),
             self._time_and_run_task(self.get_prompt_info(chat_talking_prompt_short, sender, target), "prompt_info"),
             self._time_and_run_task(self.build_actions_prompt(available_actions, chosen_actions), "actions_info"),
-            self._time_and_run_task(self.build_personality_prompt(), "personality_prompt"),
+            self._time_and_run_task(self.build_personality_prompt(reply_message), "personality_prompt"),
             self._time_and_run_task(
                 build_memory_retrieval_prompt(
                     chat_talking_prompt_short, sender, target, self.chat_stream, think_level=1, unknown_words=unknown_words, question=question
@@ -779,7 +864,7 @@ class PrivateReplyer:
         actions_info: str = results_dict["actions_info"]
         personality_prompt: str = results_dict["personality_prompt"]
         memory_retrieval: str = results_dict["memory_retrieval"]
-        keywords_reaction_prompt = await self.build_keywords_reaction_prompt(target)
+        keywords_reaction_prompt = await self.build_keywords_reaction_prompt(target, reply_message)
         jargon_explanation: str = results_dict.get("jargon_explanation") or ""
         planner_reasoning = f"你的想法是：{reply_reason}"
 
@@ -821,6 +906,9 @@ class PrivateReplyer:
                 # 兜底：即使 multiple_reply_style 配置异常也不影响正常回复
                 reply_style = global_config.personality.reply_style
 
+        # 构建人格保护规则（根据消息来源和内容动态生成）
+        personality_protection_rule = self.build_personality_protection_rule_for_message(reply_message, target)
+
         # 使用统一的 is_bot_self 函数判断是否是机器人自己（支持多平台，包括 WebUI）
         if is_bot_self(platform, user_id):
             return await global_prompt_manager.format_prompt(
@@ -843,6 +931,7 @@ class PrivateReplyer:
                 moderation_prompt=moderation_prompt_block,
                 memory_retrieval=memory_retrieval,
                 chat_prompt=chat_prompt_block,
+                personality_protection_rule=personality_protection_rule,
             ), selected_expressions
         else:
             return await global_prompt_manager.format_prompt(
@@ -865,6 +954,7 @@ class PrivateReplyer:
                 memory_retrieval=memory_retrieval,
                 chat_prompt=chat_prompt_block,
                 planner_reasoning=planner_reasoning,
+                personality_protection_rule=personality_protection_rule,
             ), selected_expressions
 
     async def build_prompt_rewrite_context(

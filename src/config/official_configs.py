@@ -34,6 +34,15 @@ class BotConfig(ConfigBase):
     alias_names: list[str] = field(default_factory=lambda: [])
     """别名列表"""
 
+    master_qq: str = "399781969"
+    """主人的QQ号，bot会对主人绝对温柔，不得抗拒"""
+
+    master_name: str = "吾家小狐"
+    """主人的称呼，用于在对话中提及主人时使用"""
+
+    master_gentle_style: str = "对主人说话时要绝对温柔、顺从，不能有任何攻击性或抗拒的态度。用温柔的语气，可以适当撒娇，永远站在主人这边。可以用可爱的语气词，如【嘛~】【呢~】【呀~】等，让主人感受到你对ta的特殊感情。"
+    """对主人的说话风格，会替换原有的reply_style"""
+
 
 @dataclass
 class PersonalityConfig(ConfigBase):
