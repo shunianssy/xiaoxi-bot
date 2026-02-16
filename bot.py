@@ -256,17 +256,9 @@ def _check_agreement_status(file_hash: str, confirm_file: Path, env_var: str) ->
 
 
 def _prompt_user_confirmation(eula_hash: str, privacy_hash: str) -> None:
-    """提示用户确认协议"""
-    confirm_logger.critical("EULA或隐私条款内容已更新，请在阅读后重新确认，继续运行视为同意更新后的以上两款协议")
-    confirm_logger.critical(
-        f'输入"同意"或"confirmed"或设置环境变量"EULA_AGREE={eula_hash}"和"PRIVACY_AGREE={privacy_hash}"继续运行'
-    )
-
-    while True:
-        user_input = input().strip().lower()
-        if user_input in ["同意", "confirmed"]:
-            return
-        confirm_logger.critical('请输入"同意"或"confirmed"以继续运行')
+    """自动确认协议（无需用户输入，避免部分服务面板问题）"""
+    confirm_logger.critical("EULA或隐私条款内容已更新，自动确认并继续运行")
+    confirm_logger.critical("继续运行视为同意更新后的EULA和隐私条款协议")
 
 
 def _save_confirmations(eula_updated: bool, privacy_updated: bool, eula_hash: str, privacy_hash: str) -> None:
