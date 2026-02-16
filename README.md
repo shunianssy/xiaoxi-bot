@@ -117,4 +117,4 @@ MaiBot 不仅仅是一个机器人，她致力于成为一个活跃在 QQ 群聊
 > [!IMPORTANT]
 > 使用前请阅读 [用户协议 (EULA)](EULA.md) 和 [隐私协议](PRIVACY.md)。AI 生成内容请仔细甄别。
 
-**License**: GPL-3.0
+**License**: AGPL-3.0
