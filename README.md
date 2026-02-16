@@ -1,15 +1,11 @@
 <div align="center">
-  <h1>小熙 MaiBot <sub><small>MaiCore</small></sub></h1>
+  <h1>小熙 MaiBot <sub><small>温柔化改版</small></sub></h1>
   
   <!-- Badges Row -->
   <p>
     <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python Version">
     <img src="https://img.shields.io/github/license/Mai-with-u/MaiBot?label=%E5%8D%8F%E8%AE%AE" alt="License">
     <img src="https://img.shields.io/badge/状态-开发中-yellow" alt="Status">
-    <img src="https://img.shields.io/github/contributors/Mai-with-u/MaiBot.svg?style=flat&label=%E8%B4%A1%E7%8C%AE%E8%80%85" alt="Contributors">
-    <img src="https://img.shields.io/github/forks/Mai-with-u/MaiBot.svg?style=flat&label=%E5%88%86%E6%94%AF%E6%95%B0" alt="Forks">
-    <img src="https://img.shields.io/github/stars/Mai-with-u/MaiBot?style=flat&label=%E6%98%9F%E6%A0%87%E6%95%B0" alt="Stars">
-    <a href="https://deepwiki.com/DrSmoothl/MaiBot"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
   </p>
 </div>
 
@@ -80,17 +76,12 @@ MaiBot 不仅仅是一个机器人，她致力于成为一个活跃在 QQ 群聊
 
 ---
 
-## 💬 讨论与社区
+## 💬 联系方式
 
-我们欢迎所有对 MaiBot 感兴趣的朋友加入！
-
-| 类别 | 群组 | 说明 |
-| :--- | :--- | :--- |
-| **技术交流** | [小熙脑电图](https://qm.qq.com/q/RzmCiRtHEW) | 技术交流/答疑 |
-| **技术交流** | [小熙大脑磁共振](https://qm.qq.com/q/VQ3XZrWgMs) | 技术交流/答疑 |
-| **技术交流** | [小熙要当VTB](https://qm.qq.com/q/wGePTl1UyY) | 技术交流/答疑 |
-| **闲聊吹水** | [小熙之闲聊群](https://qm.qq.com/q/JxvHZnxyec) | 仅限闲聊，不答疑 |
-| **插件开发** | [插件开发群](https://qm.qq.com/q/1036092828) | 进阶开发与测试 |
+| 平台 | 链接 |
+| :--- | :--- |
+| **B站主页** | [吾家小狐](https://space.bilibili.com/3493133419546943) |
+| **QQ体验群** | 1037989684 |
 
 ---
 
@@ -100,11 +91,6 @@ MaiBot 不仅仅是一个机器人，她致力于成为一个活跃在 QQ 群聊
 > 部分内容可能更新不够及时，请注意版本对应。
 
 - **[📚 核心 Wiki 文档](https://docs.mai-mai.org)**: 最全面的文档中心，了解小熙的一切。
-
-### 🧩 衍生项目
-
-- **[MaiCraft](https://github.com/MaiM-with-u/Maicraft)**: 让小熙陪你玩 Minecraft (早期开发中)。
-- **[MoFox_Bot](https://github.com/MoFox-Studio/MoFox-Core)**: 基于 MaiCore 0.10.0 的增强型 Fork，更稳定更有趣。
 
 ---
 
@@ -122,27 +108,7 @@ MaiBot 不仅仅是一个机器人，她致力于成为一个活跃在 QQ 群聊
 
 ## 🙋 贡献和致谢
 
-欢迎参与贡献！请先阅读 [贡献指南](docs-src/CONTRIBUTE.md)。
-
-### 🌟 贡献者
-
-<a href="https://github.com/MaiM-with-u/MaiBot/graphs/contributors">
-  <img alt="contributors" src="https://contrib.rocks/image?repo=MaiM-with-u/MaiBot" />
-</a>
-
-### ❤️ 特别致谢
-
-- **[略nd](https://space.bilibili.com/1344099355)**: 🎨 为小熙绘制精美人设。
-- **[NapCat](https://github.com/NapNeko/NapCatQQ)**: 🚀 现代化的基于 NTQQ 的 Bot 协议实现。
-
----
-
-## 📊 仓库状态
-
-![Alt](https://repobeats.axiom.co/api/embed/9faca9fccfc467931b87dd357b60c6362b5cfae0.svg "小熙仓库状态")
-
-### Star 趋势
-[![Star 趋势](https://starchart.cc/MaiM-with-u/MaiBot.svg?variant=adaptive)](https://starchart.cc/MaiM-with-u/MaiBot)
+本项目基于 [MaiBot](https://github.com/MaiM-with-u/MaiBot) 进行温柔化改版。
 
 ---
 
