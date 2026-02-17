@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>小熙 MaiBot <sub><small>温柔化改版</small></sub></h1>
+  <h1>小熙 MaiBot <sub><small>拟人化改版</small></sub></h1>
   
   <!-- Badges Row -->
   <p>

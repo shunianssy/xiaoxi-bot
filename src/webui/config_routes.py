@@ -10,7 +10,8 @@ from typing import Any, Annotated, Optional
 from src.common.logger import get_logger
 from src.webui.auth import verify_auth_token_from_cookie_or_header
 from src.common.toml_utils import save_toml_with_format, _update_toml_doc
-from src.config.config import Config, APIAdapterConfig, CONFIG_DIR, PROJECT_ROOT
+from src.config.config import Config, APIAdapterConfig, CONFIG_DIR, PROJECT_ROOT, load_config, api_ada_load_config
+import src.config.config as config_module
 from src.config.official_configs import (
     BotConfig,
     PersonalityConfig,
@@ -212,6 +213,9 @@ async def update_bot_config(config_data: ConfigBody, _auth: bool = Depends(requi
         config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
         save_toml_with_format(config_data, config_path)
 
+        # 重新加载内存中的配置
+        config_module.global_config = load_config(config_path)
+
         logger.info("小熙主程序配置已更新")
         return {"success": True, "message": "配置已保存"}
     except HTTPException:
@@ -234,6 +238,9 @@ async def update_model_config(config_data: ConfigBody, _auth: bool = Depends(req
         # 保存配置文件（自动保留注释和格式）
         config_path = os.path.join(CONFIG_DIR, "model_config.toml")
         save_toml_with_format(config_data, config_path)
+
+        # 重新加载内存中的配置
+        config_module.model_config = api_ada_load_config(config_path)
 
         logger.info("模型配置已更新")
         return {"success": True, "message": "配置已保存"}
@@ -283,6 +290,9 @@ async def update_bot_config_section(section_name: str, section_data: SectionBody
 
         # 保存配置（格式化数组为多行，保留注释）
         save_toml_with_format(config_data, config_path)
+
+        # 重新加载内存中的配置
+        config_module.global_config = load_config(config_path)
 
         logger.info(f"配置节 '{section_name}' 已更新（保留注释）")
         return {"success": True, "message": f"配置节 '{section_name}' 已保存"}
@@ -335,6 +345,9 @@ async def update_bot_config_raw(raw_content: RawContentBody, _auth: bool = Depen
         config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
         with open(config_path, "w", encoding="utf-8") as f:
             f.write(raw_content)
+
+        # 重新加载内存中的配置
+        config_module.global_config = load_config(config_path)
 
         logger.info("小熙主程序配置已更新（原始模式）")
         return {"success": True, "message": "配置已保存"}
@@ -394,6 +407,9 @@ async def update_model_config_section(
 
         # 保存配置（格式化数组为多行，保留注释）
         save_toml_with_format(config_data, config_path)
+
+        # 重新加载内存中的配置
+        config_module.model_config = api_ada_load_config(config_path)
 
         logger.info(f"配置节 '{section_name}' 已更新（保留注释）")
         return {"success": True, "message": f"配置节 '{section_name}' 已保存"}
