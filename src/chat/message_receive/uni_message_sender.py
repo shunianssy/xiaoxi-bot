@@ -119,6 +119,29 @@ def parse_message_segments(segment) -> list:
                     }
                 )
         result.append({"type": "forward", "data": forward_items})
+    elif segment.type == "group_notice":
+        # 群公告消息
+        if isinstance(segment.data, dict):
+            result.append({"type": "group_notice", "data": segment.data})
+        else:
+            result.append({"type": "group_notice", "data": str(segment.data)})
+    elif segment.type == "link":
+        # 链接分享消息
+        if isinstance(segment.data, dict):
+            result.append({"type": "link", "data": segment.data})
+        elif isinstance(segment.data, str):
+            result.append({"type": "link", "data": {"url": segment.data}})
+        else:
+            result.append({"type": "link", "data": str(segment.data)})
+    elif segment.type == "json":
+        # JSON 消息
+        if isinstance(segment.data, dict):
+            result.append({"type": "json", "data": segment.data})
+        else:
+            result.append({"type": "json", "data": str(segment.data)})
+    elif segment.type == "xml":
+        # XML 消息
+        result.append({"type": "xml", "data": str(segment.data) if segment.data else ""})
     else:
         # 未知类型，尝试作为文本处理
         if segment.data:

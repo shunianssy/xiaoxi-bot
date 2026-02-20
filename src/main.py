@@ -25,6 +25,7 @@ from src.plugin_system.core.plugin_manager import plugin_manager
 from src.common.message import get_global_api
 from src.dream.dream_agent import start_dream_scheduler
 from src.bw_learner.expression_auto_check_task import ExpressionAutoCheckTask
+from src.backup.backup_task import DailyBackupTask
 
 # 插件系统现在使用统一的插件加载器
 
@@ -93,6 +94,9 @@ class MainSystem:
 
         # 添加表达方式自动检查任务
         await async_task_manager.add_task(ExpressionAutoCheckTask())
+
+        # 添加每日自动备份任务
+        await async_task_manager.add_task(DailyBackupTask())
 
         # 启动API服务器
         # start_api_server()

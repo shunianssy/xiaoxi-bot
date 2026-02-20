@@ -297,6 +297,109 @@ class MessageRecv(Message):
                         text += f" 链接: {url}"
                     return text
                 return "[小程序分享]"
+            elif segment.type == "group_notice":
+                # 处理群公告消息
+                self.is_picid = False
+                self.is_emoji = False
+                self.is_voice = False
+                if isinstance(segment.data, dict):
+                    notice_id = segment.data.get("notice_id", "")
+                    content = segment.data.get("content", "")
+                    sender_id = segment.data.get("sender_id", "")
+                    sender_name = segment.data.get("sender_name", "")
+                    publish_time = segment.data.get("publish_time", "")
+                    
+                    text = "[群公告]"
+                    if sender_name:
+                        text += f" 发布者: {sender_name}"
+                    if content:
+                        # 限制公告内容长度，避免过长
+                        max_content_len = 500
+                        if len(content) > max_content_len:
+                            content = content[:max_content_len] + "..."
+                        text += f"\n内容: {content}"
+                    if publish_time:
+                        text += f" 发布时间: {publish_time}"
+                    return text
+                return "[群公告]"
+            elif segment.type == "link":
+                # 处理链接分享消息
+                self.is_picid = False
+                self.is_emoji = False
+                self.is_voice = False
+                if isinstance(segment.data, dict):
+                    url = segment.data.get("url", "")
+                    title = segment.data.get("title", "")
+                    desc = segment.data.get("desc", "")
+                    image_url = segment.data.get("image_url", "")
+                    
+                    text = "[链接分享]"
+                    if title:
+                        text += f" 标题: {title}"
+                    if desc:
+                        # 限制描述长度
+                        max_desc_len = 200
+                        if len(desc) > max_desc_len:
+                            desc = desc[:max_desc_len] + "..."
+                        text += f" 描述: {desc}"
+                    if url:
+                        text += f" URL: {url}"
+                    return text
+                elif isinstance(segment.data, str):
+                    # 如果 data 直接是 URL 字符串
+                    return f"[链接分享] URL: {segment.data}"
+                return "[链接分享]"
+            elif segment.type == "json":
+                # 处理 JSON 消息（可能包含链接分享、小程序等）
+                self.is_picid = False
+                self.is_emoji = False
+                self.is_voice = False
+                if isinstance(segment.data, dict):
+                    # 尝试解析 JSON 内容
+                    app_name = segment.data.get("app", "")
+                    desc = segment.data.get("desc", "")
+                    title = segment.data.get("title", "")
+                    url = segment.data.get("url", "")
+                    
+                    if app_name:
+                        text = f"[JSON消息: {app_name}]"
+                    else:
+                        text = "[JSON消息]"
+                    
+                    if title:
+                        text += f" 标题: {title}"
+                    if desc:
+                        max_desc_len = 200
+                        if len(desc) > max_desc_len:
+                            desc = desc[:max_desc_len] + "..."
+                        text += f" 描述: {desc}"
+                    if url:
+                        text += f" 链接: {url}"
+                    return text
+                return "[JSON消息]"
+            elif segment.type == "xml":
+                # 处理 XML 消息（可能包含卡片分享等）
+                self.is_picid = False
+                self.is_emoji = False
+                self.is_voice = False
+                if isinstance(segment.data, str):
+                    # 简单提取 XML 中的关键信息
+                    import re
+                    # 尝试提取常见的 XML 卡片信息
+                    title_match = re.search(r'<title>([^<]+)</title>', segment.data)
+                    desc_match = re.search(r'<desc>([^<]+)</desc>', segment.data)
+                    
+                    text = "[XML卡片消息]"
+                    if title_match:
+                        text += f" 标题: {title_match.group(1)}"
+                    if desc_match:
+                        desc = desc_match.group(1)
+                        max_desc_len = 200
+                        if len(desc) > max_desc_len:
+                            desc = desc[:max_desc_len] + "..."
+                        text += f" 描述: {desc}"
+                    return text
+                return "[XML卡片消息]"
             else:
                 return ""
         except Exception as e:
@@ -370,6 +473,77 @@ class MessageProcessBase(Message):
                     # print(f"reply: {self.reply}")
                     return f"[回复<{self.reply.message_info.user_info.user_nickname}:{self.reply.message_info.user_info.user_id}> 的消息：{self.reply.processed_plain_text}]"  # type: ignore
                 return ""
+            elif segment.type == "group_notice":
+                # 处理群公告消息
+                if isinstance(segment.data, dict):
+                    content = segment.data.get("content", "")
+                    sender_name = segment.data.get("sender_name", "")
+                    text = "[群公告]"
+                    if sender_name:
+                        text += f" 发布者: {sender_name}"
+                    if content:
+                        max_content_len = 500
+                        if len(content) > max_content_len:
+                            content = content[:max_content_len] + "..."
+                        text += f" 内容: {content}"
+                    return text
+                return "[群公告]"
+            elif segment.type == "link":
+                # 处理链接分享消息
+                if isinstance(segment.data, dict):
+                    url = segment.data.get("url", "")
+                    title = segment.data.get("title", "")
+                    desc = segment.data.get("desc", "")
+                    text = "[链接分享]"
+                    if title:
+                        text += f" 标题: {title}"
+                    if desc:
+                        max_desc_len = 200
+                        if len(desc) > max_desc_len:
+                            desc = desc[:max_desc_len] + "..."
+                        text += f" 描述: {desc}"
+                    if url:
+                        text += f" URL: {url}"
+                    return text
+                elif isinstance(segment.data, str):
+                    return f"[链接分享] URL: {segment.data}"
+                return "[链接分享]"
+            elif segment.type == "json":
+                # 处理 JSON 消息
+                if isinstance(segment.data, dict):
+                    app_name = segment.data.get("app", "")
+                    title = segment.data.get("title", "")
+                    desc = segment.data.get("desc", "")
+                    url = segment.data.get("url", "")
+                    text = f"[JSON消息: {app_name}]" if app_name else "[JSON消息]"
+                    if title:
+                        text += f" 标题: {title}"
+                    if desc:
+                        max_desc_len = 200
+                        if len(desc) > max_desc_len:
+                            desc = desc[:max_desc_len] + "..."
+                        text += f" 描述: {desc}"
+                    if url:
+                        text += f" 链接: {url}"
+                    return text
+                return "[JSON消息]"
+            elif segment.type == "xml":
+                # 处理 XML 消息
+                if isinstance(segment.data, str):
+                    import re
+                    title_match = re.search(r'<title>([^<]+)</title>', segment.data)
+                    desc_match = re.search(r'<desc>([^<]+)</desc>', segment.data)
+                    text = "[XML卡片消息]"
+                    if title_match:
+                        text += f" 标题: {title_match.group(1)}"
+                    if desc_match:
+                        desc = desc_match.group(1)
+                        max_desc_len = 200
+                        if len(desc) > max_desc_len:
+                            desc = desc[:max_desc_len] + "..."
+                        text += f" 描述: {desc}"
+                    return text
+                return "[XML卡片消息]"
             else:
                 return f"[{segment.type}:{str(segment.data)}]"
         except Exception as e:

@@ -3,14 +3,16 @@
 """
 
 import os
+import shutil
 import tomlkit
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, Body, Depends, Cookie, Header
 from typing import Any, Annotated, Optional
 
 from src.common.logger import get_logger
 from src.webui.auth import verify_auth_token_from_cookie_or_header
-from src.common.toml_utils import save_toml_with_format, _update_toml_doc
-from src.config.config import Config, APIAdapterConfig, CONFIG_DIR, PROJECT_ROOT, load_config, api_ada_load_config
+from src.common.toml_utils import save_toml_with_format, _update_toml_doc, format_toml_string
+from src.config.config import Config, APIAdapterConfig, CONFIG_DIR, PROJECT_ROOT, TEMPLATE_DIR, load_config, api_ada_load_config
 import src.config.config as config_module
 from src.config.official_configs import (
     BotConfig,
@@ -611,3 +613,679 @@ async def save_adapter_config(data: PathBody, _auth: bool = Depends(require_auth
     except Exception as e:
         logger.error(f"保存适配器配置失败: {e}")
         raise HTTPException(status_code=500, detail=f"保存配置失败: {str(e)}") from e
+
+
+# ===== 一键重置配置接口 =====
+
+# 需要保留的基础配置节（不会被重置）
+PRESERVED_SECTIONS = {"bot", "personality", "maim_message", "inner"}
+
+# 需要重置的配置节（恢复到模板默认值）
+RESET_SECTIONS = {
+    "expression",
+    "chat",
+    "memory",
+    "dream",
+    "tool",
+    "emoji",
+    "voice",
+    "message_receive",
+    "lpmm_knowledge",
+    "keyword_reaction",
+    "response_post_process",
+    "chinese_typo",
+    "response_splitter",
+    "log",
+    "debug",
+    "telemetry",
+    "webui",
+    "experimental",
+    "relationship",
+}
+
+
+# 重置页面 HTML 模板
+RESET_PAGE_HTML = """
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置重置 - MaiBot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .warning-box svg {
+            flex-shrink: 0;
+            color: #856404;
+        }
+        .warning-box span {
+            color: #856404;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title .badge {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: normal;
+        }
+        .badge-green {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-red {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        .config-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .config-item.preserved {
+            background: #d4edda;
+        }
+        .config-item.reset {
+            background: #f8d7da;
+        }
+        .config-item .name {
+            font-weight: 500;
+            color: #333;
+        }
+        .config-item .desc {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+        }
+        .status-icon {
+            font-size: 16px;
+        }
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
+        }
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading.active {
+            display: block;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result {
+            display: none;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .result.success {
+            display: block;
+            background: #d4edda;
+            color: #155724;
+        }
+        .result.error {
+            display: block;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .confirm-dialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .confirm-dialog.active {
+            display: flex;
+        }
+        .confirm-box {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+        }
+        .confirm-box h3 {
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+        .confirm-box p {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        .confirm-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .token-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .token-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ 配置重置</h1>
+            <p>重置除基础配置外的所有配置项到默认值</p>
+        </div>
+        <div class="content">
+            <div class="warning-box">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                <span><strong>警告：</strong>此操作将重置大部分配置到默认值。重置前会自动备份当前配置，但仍建议您手动备份重要配置。</span>
+            </div>
+
+            <div class="token-input-wrapper">
+                <input type="text" class="token-input" id="tokenInput" placeholder="请输入 WebUI Access Token">
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    保留的配置 <span class="badge badge-green">不会被重置</span>
+                </div>
+                <div class="config-grid" id="preservedList">
+                    <div class="config-item preserved">
+                        <div>
+                            <div class="name">bot</div>
+                            <div class="desc">账号、昵称、主人配置</div>
+                        </div>
+                        <span class="status-icon">✓</span>
+                    </div>
+                    <div class="config-item preserved">
+                        <div>
+                            <div class="name">personality</div>
+                            <div class="desc">人格配置</div>
+                        </div>
+                        <span class="status-icon">✓</span>
+                    </div>
+                    <div class="config-item preserved">
+                        <div>
+                            <div class="name">maim_message</div>
+                            <div class="desc">API Server 配置</div>
+                        </div>
+                        <span class="status-icon">✓</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    重置的配置 <span class="badge badge-red">恢复到默认值</span>
+                </div>
+                <div class="config-grid" id="resetList">
+                    <div class="config-item reset"><div><div class="name">expression</div><div class="desc">表达学习</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">chat</div><div class="desc">聊天设置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">memory</div><div class="desc">记忆配置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">dream</div><div class="desc">做梦配置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">emoji</div><div class="desc">表情包配置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">voice</div><div class="desc">语音识别</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">log</div><div class="desc">日志配置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">debug</div><div class="desc">调试配置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">webui</div><div class="desc">WebUI 配置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">keyword_reaction</div><div class="desc">关键词反应</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">response_post_process</div><div class="desc">回复后处理</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">chinese_typo</div><div class="desc">错别字生成</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">response_splitter</div><div class="desc">回复分割器</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">lpmm_knowledge</div><div class="desc">知识库配置</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">message_receive</div><div class="desc">消息过滤</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">relationship</div><div class="desc">关系系统</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">experimental</div><div class="desc">实验性功能</div></div><span class="status-icon">↺</span></div>
+                    <div class="config-item reset"><div><div class="name">telemetry</div><div class="desc">遥测配置</div></div><span class="status-icon">↺</span></div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>正在重置配置...</p>
+            </div>
+
+            <div class="result" id="result"></div>
+
+            <div class="actions" id="actions">
+                <button class="btn btn-secondary" onclick="window.history.back()">返回</button>
+                <button class="btn btn-primary" id="resetBtn" onclick="showConfirm()">重置配置</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="confirm-dialog" id="confirmDialog">
+        <div class="confirm-box">
+            <h3>⚠️ 确认重置</h3>
+            <p>您确定要重置配置吗？此操作将把上述配置项恢复到默认值。配置文件会自动备份到 config/old/ 目录。</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="hideConfirm()">取消</button>
+                <button class="btn btn-primary" onclick="executeReset()">确认重置</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/webui';
+
+        function getAuthToken() {
+            const token = document.getElementById('tokenInput').value.trim();
+            if (!token) {
+                alert('请输入 WebUI Access Token');
+                return null;
+            }
+            return token;
+        }
+
+        function showConfirm() {
+            const token = getAuthToken();
+            if (!token) return;
+            document.getElementById('confirmDialog').classList.add('active');
+        }
+
+        function hideConfirm() {
+            document.getElementById('confirmDialog').classList.remove('active');
+        }
+
+        async function executeReset() {
+            const token = getAuthToken();
+            if (!token) return;
+
+            hideConfirm();
+            
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const actions = document.getElementById('actions');
+            const resetBtn = document.getElementById('resetBtn');
+
+            loading.classList.add('active');
+            result.className = 'result';
+            result.textContent = '';
+            resetBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/config/reset/confirm`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <strong>✅ 重置成功！</strong><br>
+                        备份文件: ${data.backup_path}<br>
+                        已重置 ${data.reset_sections.length} 个配置节
+                    `;
+                    actions.innerHTML = `
+                        <button class="btn btn-secondary" onclick="window.location.reload()">刷新页面</button>
+                        <button class="btn btn-primary" onclick="window.history.back()">返回</button>
+                    `;
+                } else {
+                    throw new Error(data.detail || '重置失败');
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `<strong>❌ 重置失败</strong><br>${error.message}`;
+                resetBtn.disabled = false;
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        // 尝试从 Cookie 获取 token
+        window.onload = function() {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'maibot_session') {
+                    document.getElementById('tokenInput').value = value;
+                    break;
+                }
+            }
+        };
+    </script>
+</body>
+</html>
+"""
+
+
+@router.get("/reset/page", include_in_schema=False)
+async def get_reset_page():
+    """
+    返回配置重置页面 HTML
+
+    这是一个独立的 HTML 页面，用于配置重置功能
+    """
+    from fastapi.responses import HTMLResponse
+
+    return HTMLResponse(content=RESET_PAGE_HTML)
+
+
+@router.get("/reset/preview")
+async def get_reset_preview(_auth: bool = Depends(require_auth)):
+    """
+    获取重置预览信息
+
+    返回哪些配置会被保留，哪些会被重置
+    """
+    try:
+        config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
+        template_path = os.path.join(TEMPLATE_DIR, "bot_config_template.toml")
+
+        if not os.path.exists(config_path):
+            raise HTTPException(status_code=404, detail="配置文件不存在")
+
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=404, detail="模板文件不存在")
+
+        # 读取当前配置
+        with open(config_path, "r", encoding="utf-8") as f:
+            current_config = tomlkit.load(f)
+
+        # 读取模板配置
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_config = tomlkit.load(f)
+
+        # 构建预览信息
+        preserved_sections_info = {}
+        reset_sections_info = {}
+
+        for section_name in current_config.keys():
+            if section_name in PRESERVED_SECTIONS:
+                # 保留的配置
+                preserved_sections_info[section_name] = {
+                    "status": "保留",
+                    "description": _get_section_description(section_name),
+                }
+            elif section_name in RESET_SECTIONS:
+                # 需要重置的配置
+                current_section = current_config.get(section_name, {})
+                template_section = template_config.get(section_name, {})
+
+                # 检查是否有差异
+                has_changes = _compare_sections(current_section, template_section)
+
+                reset_sections_info[section_name] = {
+                    "status": "重置",
+                    "description": _get_section_description(section_name),
+                    "has_changes": has_changes,
+                }
+
+        return {
+            "success": True,
+            "preview": {
+                "preserved": preserved_sections_info,
+                "reset": reset_sections_info,
+                "total_preserved": len(preserved_sections_info),
+                "total_reset": len(reset_sections_info),
+            },
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取重置预览失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取重置预览失败: {str(e)}") from e
+
+
+@router.post("/reset/confirm")
+async def reset_config(_auth: bool = Depends(require_auth)):
+    """
+    执行一键重置配置
+
+    保留 bot、personality、maim_message、inner 配置节
+    其他配置节恢复到模板默认值
+    """
+    try:
+        config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
+        template_path = os.path.join(TEMPLATE_DIR, "bot_config_template.toml")
+        old_config_dir = os.path.join(CONFIG_DIR, "old")
+
+        if not os.path.exists(config_path):
+            raise HTTPException(status_code=404, detail="配置文件不存在")
+
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=404, detail="模板文件不存在")
+
+        # 读取当前配置
+        with open(config_path, "r", encoding="utf-8") as f:
+            current_config = tomlkit.load(f)
+
+        # 读取模板配置
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_config = tomlkit.load(f)
+
+        # 创建备份
+        os.makedirs(old_config_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_path = os.path.join(old_config_dir, f"bot_config_reset_backup_{timestamp}.toml")
+        shutil.copy2(config_path, backup_path)
+        logger.info(f"重置前已备份配置文件到: {backup_path}")
+
+        # 构建新配置：保留基础配置，其他使用模板默认值
+        new_config = tomlkit.document()
+
+        # 首先复制模板的完整结构（保留注释）
+        for key, value in template_config.items():
+            if key in PRESERVED_SECTIONS:
+                # 保留用户的基础配置
+                new_config[key] = current_config.get(key, value)
+            else:
+                # 使用模板默认值
+                new_config[key] = value
+
+        # 验证新配置
+        try:
+            Config.from_dict(new_config)
+        except Exception as e:
+            # 验证失败，恢复备份
+            shutil.copy2(backup_path, config_path)
+            logger.error(f"重置后配置验证失败，已恢复备份: {e}")
+            raise HTTPException(status_code=400, detail=f"重置后配置验证失败: {str(e)}") from e
+
+        # 保存新配置
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.write(format_toml_string(new_config))
+
+        # 重新加载内存中的配置
+        config_module.global_config = load_config(config_path)
+
+        logger.info("配置重置完成")
+        return {
+            "success": True,
+            "message": "配置已重置",
+            "backup_path": backup_path,
+            "reset_sections": list(RESET_SECTIONS),
+            "preserved_sections": list(PRESERVED_SECTIONS),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"重置配置失败: {e}")
+        raise HTTPException(status_code=500, detail=f"重置配置失败: {str(e)}") from e
+
+
+def _get_section_description(section_name: str) -> str:
+    """获取配置节的描述"""
+    descriptions = {
+        "inner": "版本信息",
+        "bot": "机器人基本配置（账号、昵称、主人配置）",
+        "personality": "人格配置（性格、说话风格）",
+        "maim_message": "API Server 配置",
+        "expression": "表达学习配置",
+        "chat": "聊天设置",
+        "memory": "记忆配置",
+        "dream": "做梦配置",
+        "tool": "工具配置",
+        "emoji": "表情包配置",
+        "voice": "语音识别配置",
+        "message_receive": "消息过滤配置",
+        "lpmm_knowledge": "知识库配置",
+        "keyword_reaction": "关键词反应",
+        "response_post_process": "回复后处理",
+        "chinese_typo": "错别字生成器",
+        "response_splitter": "回复分割器",
+        "log": "日志配置",
+        "debug": "调试配置",
+        "telemetry": "遥测配置",
+        "webui": "WebUI 配置",
+        "experimental": "实验性功能",
+        "relationship": "关系系统",
+    }
+    return descriptions.get(section_name, "未知配置节")
+
+
+def _compare_sections(current: Any, template: Any) -> bool:
+    """
+    比较两个配置节是否有差异
+
+    Returns:
+        True 表示有差异，False 表示相同
+    """
+    if isinstance(current, dict) and isinstance(template, dict):
+        # 比较字典
+        all_keys = set(current.keys()) | set(template.keys())
+        for key in all_keys:
+            if key not in current or key not in template:
+                return True
+            if _compare_sections(current.get(key), template.get(key)):
+                return True
+        return False
+    else:
+        # 比较值
+        return current != template

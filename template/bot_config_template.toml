@@ -1,5 +1,5 @@
 [inner]
-version = "7.3.5"
+version = "7.4.0"
 
 #----以下是给开发人员阅读的，如果你只是部署了小熙，不需要阅读----
 # 如果你想要修改配置文件，请递增version的值
@@ -196,6 +196,49 @@ ban_msgs_regex = [
 ]
 
 
+[other_bot_detection]
+# 其他机器人检测配置 - 用于识别和过滤群聊中其他机器人的消息，防止人格污染
+enable_detection = true # 是否启用其他机器人检测
+
+# 机器人名称关键词列表，用于识别其他机器人
+bot_keywords = [
+    "bot", "Bot", "BOT", "机器人", "人机", "AI助手", "智能助手",
+    "小冰", "小爱", "天猫精灵", "小度", "Siri", "siri",
+]
+
+# 机器人消息特征正则表达式列表
+bot_patterns = [
+    "^\\[机器人\\]", "^\\[AI\\]", "^\\[Bot\\]",
+    "我是.*?机器[人]", "我是.*?AI",
+    "本机器人", "本AI", "智能客服",
+]
+
+# 已知的其他机器人用户ID列表
+# 格式: ["platform:user_id", ...]
+# 示例: ["qq:123456789", "qq:987654321"]
+bot_user_ids = []
+
+# 机器人昵称特征正则表达式列表
+bot_name_patterns = [
+    ".*?bot$", ".*?Bot$", ".*?BOT$",
+    "^小.*", "^AI.*", "^智能.*",
+]
+
+filter_bot_messages = true # 是否在消息处理时过滤其他机器人的消息
+prevent_learning_from_bots = true # 是否禁止从其他机器人消息中学习表达方式
+
+# 表达方式污染检测阈值
+# 当同一表达方式被学习超过此次数时，检查是否来自同一来源（可能是机器人）
+pollution_detection_threshold = 3
+
+# 污染关键词列表 - 包含这些关键词的表达方式会被标记为可疑
+pollution_keywords = [
+    "肌肉", "骂", "傻", "蠢", "笨", "滚", "死",
+]
+
+auto_clean_polluted_expressions = true # 是否自动清理被污染的表达方式
+
+
 [lpmm_knowledge] # lpmm知识库配置
 enable = false # 是否启用lpmm知识库
 lpmm_mode = "agent"
@@ -253,6 +296,14 @@ max_length = 512 # 回复允许的最大长度
 max_sentence_num = 8 # 回复允许的最大句子数
 enable_kaomoji_protection = false # 是否启用颜文字保护
 enable_overflow_return_all = false # 是否在句子数量超出回复允许的最大句子数时一次性返回全部内容
+
+[ai_hallucination_filter]
+enable = true # 是否启用AI幻觉过滤，用于过滤LLM输出中的思维过程泄露、自我问答等幻觉信息
+remove_thinking_process = true # 是否移除思维过程标记（如 "Wait,", "Actually,", "let me try" 等）
+remove_self_qa = true # 是否移除自我问答（如 "Is "xxx" used correctly? Yes."）
+remove_final_string = true # 是否移除 "Final string:" 等输出标记
+remove_quoted_thoughts = true # 是否移除引号包裹的思考内容
+custom_patterns = [] # 自定义过滤正则表达式列表，例如: ['\\bThink\\b.*?\\.', 'Reasoning:.*?(?=\\n|$)']
 
 [log]
 date_style = "m-d H:i:s" # 日期格式
@@ -313,7 +364,7 @@ private_plan_style = """
 3.某句话如果已经被回复过，不要重复回复
 4.私聊时可以稍微放松一些，但保持正常的交流方式
 5.如果对方调戏或嘲讽你，可以根据心情选择无视或吐槽回去
-6.对主人态度友好一些，可以多撒娇卖萌”""
+6.对主人态度友好一些，可以多撒娇卖萌"""
 
 # 为指定聊天添加额外的prompt配置
 # 格式: ["platform:id:type:prompt内容", ...]

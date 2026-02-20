@@ -175,6 +175,9 @@ class WebUIServer:
             # 导入回复器监控路由
             from src.webui.api.replier import router as replier_router
 
+            # 导入备份管理路由
+            from src.webui.backup_routes import router as backup_router
+
             # 注册路由
             self.app.include_router(webui_router)
             self.app.include_router(logs_router)
@@ -182,6 +185,7 @@ class WebUIServer:
             self.app.include_router(chat_router)
             self.app.include_router(planner_router)
             self.app.include_router(replier_router)
+            self.app.include_router(backup_router)
 
             logger.info("✅ WebUI API 路由已注册")
         except Exception as e:

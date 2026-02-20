@@ -23,6 +23,7 @@ from src.config.official_configs import (
     ChineseTypoConfig,
     ResponsePostProcessConfig,
     ResponseSplitterConfig,
+    AIHallucinationFilterConfig,
     TelemetryConfig,
     ExperimentalConfig,
     MessageReceiveConfig,
@@ -347,6 +348,7 @@ class Config(ConfigBase):
     chinese_typo: ChineseTypoConfig
     response_post_process: ResponsePostProcessConfig
     response_splitter: ResponseSplitterConfig
+    ai_hallucination_filter: AIHallucinationFilterConfig
     telemetry: TelemetryConfig
     webui: WebUIConfig
     experimental: ExperimentalConfig

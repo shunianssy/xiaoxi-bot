@@ -150,8 +150,18 @@ class ChatBot:
 
     async def handle_notice_message(self, message: MessageRecv):
         if message.message_info.message_id == "notice":
-            message.is_notify = True
-            logger.debug("notice消息")
+            # 检查是否是机器人被戳，如果是则不标记为notify，让消息进入正常处理流程
+            additional_config = getattr(message.message_info, "additional_config", None) or {}
+            is_poke_self = additional_config.get("is_poke_self", False)
+
+            if is_poke_self:
+                # 机器人被戳，不标记为notify，让消息进入正常聊天处理流程
+                message.is_notify = False
+                logger.info("收到戳一戳消息，机器人被戳，进入正常聊天处理流程")
+            else:
+                message.is_notify = True
+                logger.debug("notice消息")
+
             try:
                 seg = message.message_segment
                 mi = message.message_info
@@ -201,6 +211,9 @@ class ChatBot:
             except Exception:
                 logger.info("[notice] (简略) 收到一条通知事件")
 
+            # 如果是机器人被戳，返回False让消息继续处理
+            if is_poke_self:
+                return False
             return True
 
         return

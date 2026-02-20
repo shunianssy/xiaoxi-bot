@@ -1,7 +1,7 @@
 import re
 
 from dataclasses import dataclass, field
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 import time
 
 from src.config.config_base import ConfigBase
@@ -650,6 +650,32 @@ class ResponseSplitterConfig(ConfigBase):
 
     enable_overflow_return_all: bool = False
     """是否在超出句子数量限制时合并后一次性返回"""
+
+
+@dataclass
+class AIHallucinationFilterConfig(ConfigBase):
+    """AI幻觉过滤配置类
+    
+    用于过滤LLM输出中的思维过程泄露、自我问答等幻觉信息
+    """
+
+    enable: bool = True
+    """是否启用AI幻觉过滤"""
+
+    remove_thinking_process: bool = True
+    """是否移除思维过程标记（如 "Wait,", "Actually,", "let me try" 等）"""
+
+    remove_self_qa: bool = True
+    """是否移除自我问答（如 "Is "xxx" used correctly? Yes."）"""
+
+    remove_final_string: bool = True
+    """是否移除 "Final string:" 等输出标记"""
+
+    remove_quoted_thoughts: bool = True
+    """是否移除引号包裹的思考内容"""
+
+    custom_patterns: List[str] = field(default_factory=list)
+    """自定义过滤正则表达式列表"""
 
 
 @dataclass

@@ -699,9 +699,107 @@ def _get_random_default_reply() -> str:
     return random.choice(default_replies)
 
 
+def filter_ai_hallucination(text: str) -> str:
+    """过滤AI幻觉信息
+    
+    移除LLM输出中的思维过程泄露、自我问答、输出标记等幻觉信息
+    
+    Args:
+        text: 需要过滤的文本
+        
+    Returns:
+        str: 过滤后的干净文本
+        
+    Examples:
+        >>> filter_ai_hallucination('part. "现在，你说：" Final string: 别急这就找狐狐告壮真逊爆了')
+        '别急这就找狐狐告壮真逊爆了'
+        
+        >>> filter_ai_hallucination('Wait, "爆了" is fine. Is "别急" used correctly? Yes. 你好')
+        '你好'
+    """
+    if not hasattr(global_config, 'ai_hallucination_filter') or not global_config.ai_hallucination_filter.enable:
+        return text
+    
+    config = global_config.ai_hallucination_filter
+    original_text = text
+    filtered_parts = []
+    
+    if config.remove_final_string:
+        pattern = r'Final\s*string\s*[:：]\s*'
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        pattern = r'Final\s*[:：]\s*'
+        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    if config.remove_thinking_process:
+        thinking_patterns = [
+            r'\bWait\s*[,，.]?\s*',
+            r'\bActually\s*[,，.]?\s*',
+            r'\bLet\s+me\s+try[^.]*\.\s*',
+            r'\bLet\s+me\s+think[^.]*\.\s*',
+            r'\bI\s+think[^.]*\.\s*',
+            r'\bHmm\s*[,，.]?\s*',
+            r'\bOK\s*[,，.]?\s*',
+            r'\bOkay\s*[,，.]?\s*',
+            r'\bSo\s+[^.]*\.\s*',
+            r'\bNow\s*[,，.]?\s*',
+            r'\bThen\s*[,，.]?\s*',
+            r'part\.\s*',
+            r'\bLet\'s\s+see[^.]*\.\s*',
+            r'\bI\s+see\s*[,，.]?\s*',
+            r'\bSure\s*[,，.]?\s*',
+            r'\bRight\s*[,，.]?\s*',
+            r'\bAlright\s*[,，.]?\s*',
+            r'\bthis\s+is\s+[^.]*\.\s*',
+        ]
+        for pattern in thinking_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    if config.remove_self_qa:
+        qa_patterns = [
+            r'Is\s+["\'][^"\']*["\']\s+used\s+correctly\s*\?\s*(Yes|No)\.?\s*',
+            r'Is\s+["\'][^"\']*["\']\s+used\s*\?\s*(Yes|No)\.?\s*',
+            r'Is\s+["\'][^"\']*["\']\s+fine\s*\?\s*(Yes|No)\.?\s*',
+            r'["\'][^"\']*["\']\s+is\s+(fine|correct|ok)\.?\s*',
+            r'Is\s+it\s+under\s+\d+\s+words\s*\?\s*(Yes|No)\.?\s*',
+            r'Does\s+it\s+match\s*\?\s*(Yes|No)\.?\s*',
+            r'Is\s+["\'][^"\']*["\']\s+present\s*\?\s*(Yes|No)\.?\s*',
+        ]
+        for pattern in qa_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    if config.remove_quoted_thoughts:
+        quoted_patterns = [
+            r'["\'][^"\']{0,50}["\']\s+is\s+(fine|correct|ok|used)\.?\s*',
+            r'["\'][^"\']{0,50}["\']\s+used\s+correctly\s*\?\s*',
+            r'"现在，你说："\s*',
+            r'"[^"]{0,30}"\s+is\s+fine\.?\s*',
+        ]
+        for pattern in quoted_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+    
+    for pattern in config.custom_patterns:
+        try:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        except re.error as e:
+            logger.warning(f"自定义幻觉过滤正则表达式无效: {pattern}, 错误: {e}")
+    
+    text = re.sub(r'\s+', ' ', text)
+    text = text.strip()
+    
+    if text != original_text:
+        logger.debug(f"AI幻觉过滤: '{original_text}' -> '{text}'")
+    
+    return text
+
+
 def process_llm_response(text: str, enable_splitter: bool = True, enable_chinese_typo: bool = True) -> list[str]:
     if not global_config.response_post_process.enable_response_post_process:
         return [text]
+
+    text = filter_ai_hallucination(text)
+
+    if not text.strip():
+        return [_get_random_default_reply()]
 
     # 先保护颜文字
     if global_config.response_splitter.enable_kaomoji_protection:

@@ -1,0 +1,11 @@
+{
+    "name": "poke_back",
+    "version": "1.0.0",
+    "description": "戳一戳回戳插件 - AI根据上下文决定是否戳回去",
+    "author": "MaiBot",
+    "plugin_type": "built_in",
+    "entry_point": "plugin.py",
+    "enabled": true,
+    "dependencies": [],
+    "python_dependencies": []
+}
