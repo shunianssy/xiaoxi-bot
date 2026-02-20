@@ -1,13 +1,6 @@
 <div align="center">
   <h1>小熙 MaiBot <sub><small>拟人化改版</small></sub></h1>
   
-  <!-- Badges Row -->
-  <p>
-    <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python Version">
-    <img src="https://img.shields.io/github/license/Mai-with-u/MaiBot?label=%E5%8D%8F%E8%AE%AE" alt="License">
-    <img src="https://img.shields.io/badge/状态-开发中-yellow" alt="Status">
-  </p>
-</div>
 
 <br>
 
